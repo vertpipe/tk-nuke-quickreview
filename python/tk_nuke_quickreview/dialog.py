@@ -219,6 +219,12 @@ class Dialog(QtGui.QWidget):
         )
 
         # set up burnins
+        self._group_node.node("bottom_center_text")["message"].setValue(
+            fields_dict["project_name"]
+        )
+        self._group_node.node("slate_projectinfo")["message"].setValue(
+            fields_dict["project_name"]
+        )
         self._group_node.node("top_left_text")["message"].setValue(
             fields_dict["top_left"]
         )
@@ -230,9 +236,25 @@ class Dialog(QtGui.QWidget):
         )
         # note: bottom right is used as a frame counter.
 
+        slate_items = fields_dict["slate"]
+
+
+        start_frame = self.ui.start_frame.text()
+        end_frame = self.ui.end_frame.text()
+
+        frame_list = start_frame + " - " + end_frame
+
+        notes = self.ui.description.toPlainText()
+
+        for i in range(len(slate_items)):
+            if slate_items[i] == 'frame_list_placeholder':
+                slate_items[i] = frame_list
+            if slate_items[i] == 'notes_placeholder':
+                slate_items[i] = notes
+
         # set up slate
         self._group_node.node("slate_info")["message"].setValue(
-            "\n".join(fields_dict["slate"])
+            "\n".join(slate_items)
         )
 
     @sgtk.LogManager.log_timing
@@ -261,6 +283,23 @@ class Dialog(QtGui.QWidget):
         mov_out = self._group_node.node("mov_writer")
         mov_path = mov_path.replace(os.sep, "/")
         mov_out["file"].setValue(mov_path)
+
+        # setting output colorspace
+        colorspace = nuke.root().knob('colorManagement').getValue()
+
+        # If OCIO is set, output - sRGB
+        if colorspace:
+            mov_out.knob('colorspace').setValue('Output - sRGB')
+
+        # If no OCIO is set, detect if ACES is used or nuke_default
+        else:
+            ocio_config = nuke.root().knob('OCIO_config').getValue()
+
+            if ocio_config == 2.0:
+                mov_out.knob('colorspace').setValue('sRGB')
+
+            else:
+                mov_out.knob('colorspace').setValue('Output - sRGB')
 
         # apply the Write node codec settings we'll use for generating the Quicktime
         self._bundle.execute_hook_method(

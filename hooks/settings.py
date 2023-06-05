@@ -13,10 +13,13 @@ import sys
 import os
 import nuke
 import datetime
+import time
+
 
 from tank_vendor import six
 
 HookBaseClass = sgtk.get_hook_baseclass()
+
 
 
 class Settings(HookBaseClass):
@@ -32,6 +35,15 @@ class Settings(HookBaseClass):
         :param context: The context associated with the version.
         :returns: Dictionary with burn-ins and slate strings
         """
+
+        current_scene_path = nuke.root().name()
+        current_scene_path = current_scene_path.replace("/", os.path.sep)
+        # get just filename
+        current_scene_name = os.path.basename(current_scene_path)
+        # drop .nk
+        current_scene_name = os.path.splitext(current_scene_name)[0]
+        file_name = current_scene_name.lower()
+
         return_data = {}
 
         # current user
@@ -58,29 +70,34 @@ class Settings(HookBaseClass):
         # bottom left says
         # sg version name
         # User
-        bottom_left = "%s\n%s" % (sg_version_name, user_name)
-        return_data["bottom_left"] = bottom_left
+        bottom_left = "temp"
+        return_data["bottom_left"] = file_name
+
+
+        return_data["project_name"] = project_name
+
+        project_header = project_name
+        return_data["project_header"] = project_header
+
 
         # and format the slate
         slate_items = []
-        slate_items.append("Project: %s" % context.project["name"])
-        if context.entity:
-            slate_items.append(
-                "%s: %s" % (context.entity["type"], context.entity["name"])
-            )
-        slate_items.append("Name: %s" % sg_version_name)
-
-        if context.task:
-            slate_items.append("Task: %s" % context.task["name"])
-        elif context.step:
-            slate_items.append("Step: %s" % context.step["name"])
-
-        slate_items.append("Date: %s" % date_formatted)
-        slate_items.append("User: %s" % user_name)
+        slate_items.append(file_name)
+        slate_items.append("frame_list_placeholder")
+        slate_items.append(date_formatted)
+        slate_items.append(user_name)
+        version = file_name[-4:]
+        slate_items.append(version + "\n")
+        fps = "[value root.fps]"
+        slate_items.append(fps)
+        resolution = "[value parent.input.width] x [value parent.input.height]"
+        slate_items.append(resolution + "\n")
+        slate_items.append("notes_placeholder")
 
         return_data["slate"] = slate_items
 
         return return_data
+
 
     def get_title(self, context):
         """
